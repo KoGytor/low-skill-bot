@@ -1,6 +1,7 @@
 import random
 import telebot
 import os
+from deep_translator import MyMemoryTranslator
 from dotenv import load_dotenv
 from telebot import *
 
@@ -11,9 +12,11 @@ bot = telebot.TeleBot(token)
 
 @bot.message_handler(commands = ['start'])
 def function(message):
-    button1 = types.InlineKeyboardButton(text='Игра "Рандом', callback_data='random')
+    button_game = types.InlineKeyboardButton(text='Игра "Рандом', callback_data = 'random')
+    button_translator = types.InlineKeyboardButton(text = 'Переводчик текста', callback_data = 'translate')
     markup = types.InlineKeyboardMarkup()
-    markup.add(button1)
+    markup.add(button_game)
+    markup.add(button_translator)
     bot.send_message(
         text = 'Чего бы вы хотели?',
         chat_id = message.chat.id,
@@ -21,13 +24,39 @@ def function(message):
     )
 
 def menu(chat_id):
-    button1 = types.InlineKeyboardButton(text='Игра "Рандом', callback_data='random')
+    button_game = types.InlineKeyboardButton(text='Игра "Рандом', callback_data = 'random')
+    button_translator = types.InlineKeyboardButton(text = 'Переводчик текста', callback_data = 'translate')
     markup = types.InlineKeyboardMarkup()
-    markup.add(button1)
+    markup.add(button_game)
+    markup.add(button_translator)
     bot.send_message(
         text = 'Чего бы вы хотели?',
         chat_id = chat_id,
         reply_markup=markup
+    )
+
+def translator(message):
+    sent_message = bot.send_message(
+        message.chat.id,
+        "🔤 Отправь текст для перевода:"
+    )
+
+    bot.register_next_step_handler(sent_message, translate)
+
+def translate(message):
+    text = message.text
+    translator = MyMemoryTranslator(source = 'ru-RU', target = 'en-GB')
+    translated_text = translator.translate(text)
+
+    markup = types.InlineKeyboardMarkup()
+    button_menu = types.InlineKeyboardButton(text = 'Меню', callback_data = 'menu')
+    button_translate = types.InlineKeyboardButton(text = 'Перевести еще', callback_data = 'translate')
+    markup.add(button_menu, button_translate)
+
+    bot.send_message(
+        text = translated_text,
+        chat_id = message.chat.id,
+        reply_markup = markup
     )
 
 def random_game(chat_id):
@@ -85,6 +114,9 @@ def send_message(call):
             win_menu(chat_id, choice)
     elif call.data == 'menu':
         menu(chat_id)
-
+    elif call.data == 'translate':
+        translator(message)
+        
+        
 
 bot.polling(none_stop=True)
